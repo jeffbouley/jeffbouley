@@ -1,0 +1,48 @@
+import os
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+# The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
+# the OAuth 2.0 information for this application, including its client_id and
+# client_secret.
+CLIENT_SECRETS_FILE = "client_secret.json"
+
+# This OAuth 2.0 access scope allows for full read/write access to the
+# authenticated user's account and requires requests to use an SSL connection.
+SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
+API_SERVICE_NAME = 'youtube'
+API_VERSION = 'v3'
+
+def get_authenticated_service():
+    flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+    credentials = flow.run_console()
+    return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+
+def initialize_upload(youtube, filename):
+    request = youtube.videos().insert(
+        part="snippet,status",
+        body=dict(
+            snippet=dict(
+                title="My video title",
+                description="My video description",
+                tags=["tag1", "tag2"],
+                categoryId="22" # See https://developers.google.com/youtube/v3/docs/videoCategories/list
+            ),
+            status=dict(
+                privacyStatus="private" # public, unlisted, private
+            )
+        ),
+
+        media_body=MediaFileUpload(filename)
+    )
+
+    response = request.execute()
+
+    print('Video uploaded with video id:', response['id'])
+
+if __name__ == '__main__':
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    youtube = get_authenticated_service()
+    filename = 'your-video-file.mp4'  # Please replace with your actual video file
+    initialize_upload(youtube, filename)
